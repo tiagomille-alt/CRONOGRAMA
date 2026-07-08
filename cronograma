@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cronograma - Técnico de Enfermagem Meruoca</title>
+    <!-- Tailwind CSS para estilização moderna, limpa e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons para vetores e símbolos em HD -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- CABEÇALHO -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="text-center sm:text-left">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Cronograma de Estudos</h1>
+                <p class="text-blue-100 text-sm mt-1">Técnico de Enfermagem | Prefeitura de Meruoca - CE (Banca: Consulpam)</p>
+            </div>
+            <div id="statusConexao" class="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl text-xs font-semibold backdrop-blur-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" id="dotStatus"></span>
+                <span id="textStatus">Sincronizando Banco de Questões...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- DASHBOARD DE PROGRESSO -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <div class="flex items-center gap-4 border-b sm:border-b-0 sm:border-r border-slate-100 pb-4 sm:pb-0 sm:pr-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <i data-lucide="check-square" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Metas Concluídas</p>
+                    <p class="text-2xl font-bold text-slate-800" id="dashMetaPercent">0%</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 border-b sm:border-b-0 sm:border-r border-slate-100 py-4 sm:py-0 sm:px-4">
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <i data-lucide="award" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Questões Resolvidas</p>
+                    <p class="text-2xl font-bold text-slate-800" id="dashResolvidas">0</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 pt-4 sm:pt-0 sm:pl-4">
+                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <i data-lucide="percent" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Taxa de Acertos</p>
+                    <p class="text-2xl font-bold text-slate-800" id="dashAcerto">0%</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ÁREA DE QUESTÕES INTEGRADA -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+            <!-- Barra de Busca e Filtro -->
+            <div class="bg-slate-50 border-b border-slate-100 p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div class="flex-grow">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm sm:text-base">
+                        <i data-lucide="help-circle" class="text-blue-600 w-5 h-5"></i>
+                        QUESTÕES
+                    </h3>
+                    <p class="text-slate-400 text-[11px] font-medium" id="quizSubtitulo">Digite um assunto abaixo para buscar e carregar as questões correspondentes.</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <div class="relative flex-grow sm:w-64">
+                        <input type="text" id="inputFiltroTema" placeholder="Buscar assunto (ex: PNI, SUS, Crase)..." class="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 transition">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+                    </div>
+                    <button onclick="buscarSimuladoTema(document.getElementById('inputFiltroTema').value)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm shadow-blue-100 transition whitespace-nowrap">
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Box Dinâmico do Exercício -->
+            <div id="containerSimuladoAtivo" class="p-4 sm:p-6 space-y-4">
+                <!-- Estado Inicial Neutro -->
+                <div id="estadoSimuladoVazio" class="text-center py-8 text-slate-400 space-y-2">
+                    <i data-lucide="layout-list" class="w-10 h-10 mx-auto text-slate-300"></i>
+                    <p class="text-xs font-semibold">Nenhum tema ativo no momento.</p>
+                    <p class="text-[11px]">Digite um assunto ou termo técnico no campo de busca acima para carregar o seu simulado adaptativo.</p>
+                </div>
+
+                <!-- Conteúdo Ocultado até Ativação -->
+                <div id="estadoSimuladoComDados" class="hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <h4 class="font-bold text-slate-800 text-sm sm:text-base" id="quizTemaTitulo">Simulado de Estudos</h4>
+                        <div class="flex justify-between sm:justify-end items-center bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 text-[11px] text-slate-500 font-medium gap-3">
+                            <span id="quizQuestaoContador">Questão 1 de 1</span>
+                            <span id="quizQuestaoBanca" class="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded text-[10px]">CONCURSO</span>
+                        </div>
+                    </div>
+
+                    <!-- Enunciado -->
+                    <p class="text-xs sm:text-sm font-semibold leading-relaxed text-slate-800" id="quizEnunciado">Carregando pergunta...</p>
+
+                    <!-- Alternativas -->
+                    <div class="space-y-2" id="quizAlternativasContainer">
+                        <!-- Gerado via JS -->
+                    </div>
+
+                    <!-- Explicação -->
+                    <div id="quizFeedbackBox" class="hidden p-4 rounded-xl border text-xs sm:text-sm space-y-2">
+                        <!-- Revelado após ação de envio -->
+                    </div>
+
+                    <!-- Rodapé do Simulado -->
+                    <div class="pt-3 border-t border-slate-100 flex justify-between items-center gap-2">
+                        <button id="btnPrevQuestao" onclick="prevQuestao()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition disabled:opacity-40 flex items-center gap-1">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                        </button>
+                        <button id="btnSubmitQuestao" onclick="verificarQuizResposta()" class="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition shadow-md shadow-blue-100">
+                            Enviar Resposta
+                        </button>
+                        <button id="btnNextQuestao" onclick="nextQuestao()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition disabled:opacity-40 flex items-center gap-1">
+                            Próxima <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GRADE DE PLANEJAMENTO -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+        <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <i data-lucide="calendar" class="text-blue-600"></i> Planilha Semanal de Estudos (9 Semanas)
+        </h2>
+
+        <!-- LISTA DE SEMANAS -->
+        <div class="space-y-6" id="gradeSemanas">
+            <!-- Gerado via JS -->
+        </div>
+    </main>
+
+    <!-- NOTIFICAÇÃO TOAST -->
+    <div id="notificacaoToast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <i data-lucide="info" class="w-5 h-5 text-blue-400"></i>
+        <span class="text-xs font-semibold" id="notificacaoTexto">Mensagem</span>
+    </div>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs mt-auto border-t border-slate-800">
+        <p>Cronograma Gerado para uso Pessoal - Foco na Excelência rumo à aprovação em Meruoca-CE.</p>
+    </footer>
+
+    <!-- BANCO DE DADOS E LÓGICA DO SIMULADOR -->
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzcfcg-vdgHPgfBEtIdjfgDn3hJnvlW6i0nft_Z_mT-06XOqB4upN3qpBzDbyLtqwc1/exec";
+
+        let BANCO_DE_QUESTOES = [];
+        let activeQuestions = [];
+        let currentQuestionIndex = 0;
+        let selectedOptionText = null;
+        let optionButtonsReferencia = [];
+
+        let progressoGeral = JSON.parse(localStorage.getItem('progresso_meruoca')) || {};
+        let statsQuiz = JSON.parse(localStorage.getItem('stats_meruoca')) || { solved: 0, correct: 0 };
+
+        const CRONOGRAMA_DADOS = [
+            {
+                semana: 1,
+                titulo: "Legislação Profissional, Português Base e Informática",
+                dias: [
+                    { dia: "Seg", d1: "Lei do Exercício Profissional (Lei 7.498/86 e Dec. 94.406/87)", d2: "Português: Compreensão e interpretação de texto", meta: "Foco em diferenciar atividades do Enfermeiro vs. Técnico." },
+                    { dia: "Ter", d1: "Código de Ética dos Profissionais de Enfermagem (Res. Cofen 564/17)", d2: "Português: Gêneros e tipos textuais", meta: "Memorizar penalidades (advertência, multa, censura, suspensão, cassação)." },
+                    { dia: "Qua", d1: "Estrutura do Sistema Cofen/Coren e Processo Ético", d2: "Português: Coesão e coerência textual", meta: "Entender quem aplica a cassação (exclusivo do Cofen)." },
+                    { dia: "Qui", d1: "Estudo Reverso: Conceitos de Hardware e memórias", d2: "Informática: Sistema Operacional Windows 11", meta: "Foco em atalhos de teclado e gerenciador de arquivos." },
+                    { dia: "Sex", d1: "Estudo Reverso: Sistema Operacional Ubuntu Linux", d2: "Informática: Ambientes de redes e conceitos de Internet", meta: "Diferenças de comandos básicos de terminal entre os sistemas." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Resolução de erros da semana + Simulado Consulpam", meta: "40 questões focadas em Ética, Legislação e Português." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Pausa total para recuperação mental.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 2,
+                titulo: "Fundamentos de Enfermagem e Raciocínio Lógico I",
+                dias: [
+                    { dia: "Seg", d1: "Sinais Vitais (Valores de referência de SSVV e terminologias)", d2: "Raciocínio Lógico: Proposições simples e compostas", meta: "Diferenciar Taquicardia/Bradicardia, Taquipneia/Bradipneia, etc." },
+                    { dia: "Ter", d1: "Técnicas de Higienização (Corporal, oral, íntima, lavagem das mãos)", d2: "Raciocínio Lógico: Conectivos e Tabelas-verdade", meta: "Memorizar os 5 momentos obrigatórios para a higienização das mãos." },
+                    { dia: "Qua", d1: "Anotações e registros de enfermagem no prontuário do paciente", d2: "Raciocínio Lógico: Diagramas lógicos", meta: "Foco nas regras de carimbo, assinatura e proibição de rasuras." },
+                    { dia: "Qui", d1: "Transporte do paciente, posicionamento no leito e prevenção de LPP", d2: "Estudo Reverso: Lógica de argumentação", meta: "Fixar posições: Fowler, Trendelenburg, Genupeitoral e Sims." },
+                    { dia: "Sex", d1: "Teorias de Enfermagem (Foco nas Necessidades Humanas Básicas)", d2: "Estudo Reverso: Equivalências lógicas", meta: "Foco total na teoria de Wanda Horta (pioneira no Brasil)." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Bateria pesada de Fundamentos de Enfermagem", meta: "50 questões de nível médio a difícil da banca Consulpam." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Organização do material de estudos da próxima semana.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 3,
+                titulo: "Farmacologia Básica e Biossegurança",
+                dias: [
+                    { dia: "Seg", d1: "Farmacologia: Vias de administração e cuidados gerais", d2: "Português: Ortografia oficial (Novo Acordo)", meta: "Fixar ângulos: ID (10-15°), SC (45° ou 90°), IM (90°), EV (25-30°)." },
+                    { dia: "Ter", d1: "Cálculo de Medicamentos: Regra de três com ampolas e frascos", d2: "Português: Acentuação gráfica", meta: "Exercícios com Penicilina Cristalina e Decadron." },
+                    { dia: "Qua", d1: "Cálculo de Gotejamento de Soro (Fórmulas macro e microgotas)", d2: "Português: Classes de palavras (Foco em Verbos)", meta: "Decorar as 4 fórmulas fundamentais de gotejamento." },
+                    { dia: "Qui", d1: "CME: Limpeza, desinfecção, esterilização e Spaulding", d2: "Português: Classes de palavras (Foco em Pronomes)", meta: "Diferenciar artigos Críticos, Semicríticos e Não Críticos." },
+                    { dia: "Sex", d1: "Biossegurança: NR-32, descarte de perfurocortantes e isolamentos", d2: "Precauções por tipo: Gotículas, Aerossóis e Contato", meta: "Decorar as cores das lixeiras de resíduos de saúde (RSSF)." },
+                    { dia: "Sáb", d1: "OFICINA PRÁTICA", d2: "Resolução exaustiva de cálculos farmacêuticos", meta: "Mínimo de 30 problemas de gotejamento e dosagem resolvidos." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Desconexão total dos estudos.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 4,
+                titulo: "Legislação do SUS e História/Geografia de Meruoca",
+                dias: [
+                    { dia: "Seg", d1: "SUS: Lei 8.080/1990 (Artigos 1º ao 14 - Princípios e objetivos)", d2: "História de Meruoca: Origem e emancipação", meta: "Decorar a diferença entre princípios Doutrinários e Organizativos." },
+                    { dia: "Ter", d1: "SUS: Lei 8.080/1990 (Artigos 15 ao 26 - Competências de cada ente)", d2: "Geografia de Meruoca: Clima, relevo e limites", meta: "Atribuições exclusivas da Direção Nacional (União) vs. Município." },
+                    { dia: "Qua", d1: "SUS: Lei 8.142/1990 (Participação popular e financiamento)", d2: "Aspectos Socioeconômicos de Meruoca", meta: "Conselhos (permanentes, paritários) vs. Conferências (4 em 4 anos)." },
+                    { dia: "Qui", d1: "SUS: Decreto Presidencial 7.508/2011", d2: "Legislação Geral do SUS", meta: "Conceito de Região de Saúde, COAP, RENASES e RENAME." },
+                    { dia: "Sex", d1: "Evolução Histórica da Saúde Pública no Brasil", d2: "Legislação Geral do SUS", meta: "Da criação das CAPS (Lei Chaves), INAMPS até a chegada do SUS." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Simulado de Legislação do SUS (Texto seco da lei)", meta: "40 questões Consulpam. A banca cobra a literalidade da lei." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Pausa para descanso ativo.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 5,
+                titulo: "Saúde da Mulher e da Criança (Materno-Infantil)",
+                dias: [
+                    { dia: "Seg", d1: "Pré-Natal de baixo risco: Modificações, consultas e exames", d2: "Português: Sintaxe da oração (Termos essenciais)", meta: "Cálculo da DPP (Regra de Naegele) e da Idade Gestacional (IG)." },
+                    { dia: "Ter", d1: "Sinais de parto, fases clínicas e assistência no Puerpério", d2: "Português: Sintaxe do período composto", meta: "Sinais de alerta no puerpério (Hemorragia pós-parto e infecções)." },
+                    { dia: "Qua", d1: "Cuidados imediatos e mediatos ao Recém-Nascido (RN)", d2: "Português: Orações coordenadas e subordinadas", meta: "Escala de APGAR (0, 1 e 5 min), Vitamina K e Método Credé." },
+                    { dia: "Qui", d1: "Aleitamento Materno (Manejo e pega) e Exame Citopatológico", d2: "Saúde da Mulher: Rastreamento de CA de colo/mama", meta: "Diferenças do leite: Colostro, Leite Anterior e Leite Posterior." },
+                    { dia: "Sex", d1: "Acompanhamento do Crescimento e Desenvolvimento Infantil (CD)", d2: "Saúde da Criança: Marcos do desenvolvimento", meta: "Interpretação das curvas de Peso x Idade e Perímetro Cefálico." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Resolução de questões de Enfermagem Materno-Infantil", meta: "50 questões de concursos municipais organizados pela Consulpam." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Dia livre.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 6,
+                titulo: "Programa Nacional de Imunização (PNI) e Informática II",
+                dias: [
+                    { dia: "Seg", d1: "PNI: Vacinas do nascimento aos 4 anos de idade", d2: "Programa Nacional de Imunização", meta: "Esquemas, doses e vias: BCG, Hep B, Penta, VIP, VORH, Tríplice Viral." },
+                    { dia: "Ter", d1: "PNI: Vacinas do Adolescente, Adulto, Idoso e Gestante", d2: "Programa Nacional de Imunização", meta: "Foco na vacina dTpa para gestantes e calendário do idoso." },
+                    { dia: "Qua", d1: "Rede de Frio: Armazenamento e controle de temperatura", d2: "Logística de Imunobiológicos", meta: "Organização da geladeira da UBS e faixa de temperatura (+2°C a +8°C)." },
+                    { dia: "Qui", d1: "Eventos adversos pós-vacinação e erros de imunização", d2: "Condutas e notificações de eventos", meta: "Manejo de reações vacinais comuns e notificações obrigatórias." },
+                    { dia: "Sex", d1: "Estudo Reverso: Atalhos do Microsoft Word", d2: "Informática: Fórmulas lógicas do Excel", meta: "Fórmulas indispensáveis para nível intermediário: SOMA, MÉDIA, SE." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Simulado exclusivo de Imunização (PNI e Rede de Frio)", meta: "Assunto com maior peso histórico em provas da Consulpam." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Dia de descanso completo.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 7,
+                titulo: "Clínica Médica e Doenças Crônicas",
+                dias: [
+                    { dia: "Seg", d1: "Clínica Médica: Insuficiência Cardíaca (ICC) e Infarto (IAM)", d2: "Português: Concordância Verbal (Regras gerais)", meta: "Cuidados de enfermagem imediatos no paciente com dor precordial." },
+                    { dia: "Ter", d1: "HAS e Diabetes Mellitus: Sinais de hipo/hiperglicemia", d2: "Português: Concordância Nominal", meta: "Técnicas e locais de aplicação de Insulina (NPH e Regular)." },
+                    { dia: "Qua", d1: "Assistência em Crises de Asma, DPOC e Tuberculose", d2: "Português: Regência Verbal e Nominal", meta: "Medidas de isolamento por aerossóis na Tuberculose ativa." },
+                    { dia: "Qui", d1: "Períodos Cirúrgicos (Pré, Trans, Pós) e cuidados com feridas", d2: "Cuidados com Drenos (Portovac e Penrose)", meta: "Complicações pós-operatórias imediatas (choque, evisceração)." },
+                    { dia: "Sex", d1: "Manutenção de Sondagens (SNG, SNE) e Sondagem Vesical (SVD)", d2: "Técnicas de Enfermagem em Clínica Médica", meta: "Cuidados com fixação, mensuração de resíduo gástrico e diurese." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Resolução de provas anteriores de Técnico de Enfermagem", meta: "Análise do perfil de questões de clínica médica da banca." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Pausa regulamentar.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 8,
+                titulo: "Urgência, Emergência e Direito Administrativo/Constitucional",
+                dias: [
+                    { dia: "Seg", d1: "Suporte Básico de Vida (SBV): Algoritmo de RCP (AHA)", d2: "Direito Constitucional: Artigo 37 da CF (LIMPE)", meta: "Proporção 30:2, frequência de 100-120/min e uso do DEA." },
+                    { dia: "Ter", d1: "Atendimento ao Trauma: Protocolo XABCDE e Glasgow", d2: "Direito Administrativo: Acumulação de cargos na Saúde", meta: "Memorizar a Escala de Coma de Glasgow atualizada (Reatividade Pupilar)." },
+                    { dia: "Qua", d1: "Atendimento a Queimaduras: Extensão (Regra dos Nove) e Choque", d2: "Atendimento Pré-Hospitalar (APH)", meta: "Classificação em 1º, 2º e 3º graus e reposição volêmica precoce." },
+                    { dia: "Qui", d1: "Primeiros Socorros: Crises convulsivas e Engasgo", d2: "Manobra de Heimlich em adultos e bebês", meta: "Condutas corretas: proteção da cabeça, lateralização e desobstrução." },
+                    { dia: "Sex", d1: "Estatuto dos Servidores Públicos de Meruoca", d2: "Direitos, deveres e punições administrativas", meta: "Regras de estabilidade, estágio probatório e penalidades." },
+                    { dia: "Sáb", d1: "REVISÃO GERAL", d2: "Simulado Emergência + Direito Administrativo", meta: "Avaliação do rendimento nos blocos de trauma e leis." },
+                    { dia: "Dom", d1: "DESCANSO", d2: "Recarga para a semana final.", meta: "Folga." }
+                ]
+            },
+            {
+                semana: 9,
+                titulo: "Vigilância em Saúde e Reta Final de Revisão",
+                dias: [
+                    { dia: "Seg", d1: "Vigilância Epidemiológica: Doenças de Notificação Compulsória", d2: "Estudo Reverso: Problemas de Contagem (Análise)", meta: "Diferenciar Notificação Imediata (24 horas) de Notificação Semanal." },
+                    { dia: "Ter", d1: "Humanização: Acolhimento com Classificação de Risco", d2: "Estudo Reverso: Probabilidade Básica", meta: "Protocolo de Manchester: Cores, gravidade e tempos de espera." },
+                    { dia: "Qua", d1: "REVISÃO FLASH", d2: "Português: Regras de uso do acento de Crase", meta: "Revisão rápida por mapas mentais de Farmacologia e Vacinas." },
+                    { dia: "Qui", d1: "SIMULADO DE OURO", d2: "Resolução de uma prova real completa da banca", meta: "Simular tempo de prova, restrição de água e folha de respostas." },
+                    { dia: "Sex", d1: "ANÁLISE DE ERROS", d2: "Estudo reverso focado nas falhas do simulado", meta: "Foco em revisar lacunas técnicas de última hora." },
+                    { dia: "Sáb", d1: "DESCANSO MENTAL CRUCIAL", d2: "Pausa total para acalmar a ansiedade pré-prova", meta: "Organização de canetas, documentos e rota para o local." },
+                    { dia: "Dom", d1: "DIA DA PROVA", d2: "Leitura calma, controle da ansiedade e vitória!", meta: "Foco absoluto." }
+                ]
+            }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderizarGradeSemanal();
+            obterQuestoesDoServidor();
+            updateDashboard();
+            lucide.createIcons();
+        });
+
+        function mostrarNotificacao(mensagem, sucesso = true) {
+            const toast = document.getElementById('notificacaoToast');
+            const texto = document.getElementById('notificacaoTexto');
+            texto.innerText = mensagem;
+            
+            toast.className = `fixed bottom-5 right-5 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 transform transition-all duration-300 ${sucesso ? 'bg-slate-900 border-l-4 border-emerald-500' : 'bg-red-900 border-l-4 border-red-500'}`;
+            toast.style.opacity = "1";
+            toast.style.transform = "translateY(0)";
+            
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                toast.style.transform = "translateY(20px)";
+            }, 3000);
+        }
+
+        async function obterQuestoesDoServidor() {
+            try {
+                const resposta = await fetch(API_URL);
+                if (!resposta.ok) throw new Error("Erro na rede");
+                
+                BANCO_DE_QUESTOES = await resposta.json();
+                
+                const dot = document.getElementById('dotStatus');
+                const text = document.getElementById('textStatus');
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+                text.innerText = "Banco Sincronizado!";
+                mostrarNotificacao(`Banco de dados ativo: ${BANCO_DE_QUESTOES.length} questões carregadas!`);
+                updateDashboard();
+            } catch (erro) {
+                console.error(erro);
+                const dot = document.getElementById('dotStatus');
+                const text = document.getElementById('textStatus');
+                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                text.innerText = "Modo Off-line Ativo";
+                mostrarNotificacao("Não foi possível sincronizar o banco. Rodando offline.", false);
+            }
+        }
+
+        function renderizarGradeSemanal() {
+            const container = document.getElementById('gradeSemanas');
+            container.innerHTML = '';
+
+            CRONOGRAMA_DADOS.forEach((sem) => {
+                let concluidoSemana = 0;
+                sem.dias.forEach((d, idx) => {
+                    if (progressoGeral[`s${sem.semana}_d${idx}`]) concluidoSemana++;
+                });
+
+                const divSemana = document.createElement('div');
+                divSemana.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden";
+                divSemana.innerHTML = `
+                    <button onclick="toggleSemanaCollapse(${sem.semana})" class="w-full px-4 py-4 sm:px-6 sm:py-5 bg-gradient-to-r from-slate-50 to-slate-100/50 flex justify-between items-center text-left hover:bg-slate-100 transition focus:outline-none">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-md">SEMANA ${sem.semana}</span>
+                                <span class="text-[11px] text-slate-400 font-medium" id="contadorSemana-${sem.semana}">${concluidoSemana} de 7 concluídos</span>
+                            </div>
+                            <h3 class="text-sm sm:text-base font-bold text-slate-800 mt-1">${sem.titulo}</h3>
+                        </div>
+                        <i data-lucide="chevron-down" id="iconSemana-${sem.semana}" class="w-5 h-5 text-slate-400 transform transition-transform duration-200 shrink-0"></i>
+                    </button>
+
+                    <div id="corpoSemana-${sem.semana}" class="hidden border-t border-slate-100 overflow-x-auto w-full">
+                        <div class="inline-block min-w-full align-middle">
+                            <table class="min-w-full text-left border-collapse table-fixed sm:table-auto">
+                                <thead>
+                                    <tr class="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                        <th class="py-3 px-3 w-12 text-center">Feito</th>
+                                        <th class="py-3 px-2 w-12">Dia</th>
+                                        <th class="py-3 px-3 w-64 sm:w-auto">Disciplina 1 (Enfermagem / Leis)</th>
+                                        <th class="py-3 px-3 w-56 sm:w-auto">Disciplina 2 (Gerais / Básicas)</th>
+                                        <th class="py-3 px-4 w-48 sm:w-auto">Foco de Questão</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-[11px] sm:text-xs" id="tabelaCorpo-${sem.semana}">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(divSemana);
+
+                const tabelaCorpo = document.getElementById(`tabelaCorpo-${sem.semana}`);
+                sem.dias.forEach((d, idx) => {
+                    const isChecked = progressoGeral[`s${sem.semana}_d${idx}`] ? 'checked' : '';
+                    const tr = document.createElement('tr');
+                    tr.className = `hover:bg-slate-50/40 transition ${isChecked ? 'bg-emerald-50/20' : ''}`;
+                    tr.innerHTML = `
+                        <td class="py-3 px-3 text-center">
+                            <input type="checkbox" onchange="toggleProgressoDia(${sem.semana}, ${idx}, this)" ${isChecked} class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition">
+                        </td>
+                        <td class="py-3 px-2 font-bold text-slate-500">${d.dia}</td>
+                        <td class="py-3 px-3 font-medium text-slate-800 break-words">
+                            ${d.dia !== 'Dom' ? `<span>${d.d1}</span>` : `<span class="text-slate-400 italic">${d.d1}</span>`}
+                        </td>
+                        <td class="py-3 px-3 text-slate-600 break-words">
+                            ${d.dia !== 'Dom' ? `<span>${d.d2}</span>` : `<span class="text-slate-400 italic">${d.d2}</span>`}
+                        </td>
+                        <td class="py-3 px-4 text-slate-500 leading-relaxed font-medium break-words">${d.meta}</td>
+                    `;
+                    tabelaCorpo.appendChild(tr);
+                });
+            });
+
+            toggleSemanaCollapse(1);
+        }
+
+        function toggleSemanaCollapse(semanaId) {
+            const corpo = document.getElementById(`corpoSemana-${semanaId}`);
+            const icone = document.getElementById(`iconSemana-${semanaId}`);
+            
+            if (corpo.classList.contains('hidden')) {
+                corpo.classList.remove('hidden');
+                icone.style.transform = "rotate(180deg)";
+            } else {
+                corpo.classList.add('hidden');
+                icone.style.transform = "rotate(0deg)";
+            }
+        }
+
+        function toggleProgressoDia(semana, diaIndex, checkbox) {
+            const key = `s${semana}_d${diaIndex}`;
+            if (checkbox.checked) {
+                progressoGeral[key] = true;
+                checkbox.closest('tr').classList.add('bg-emerald-50/20');
+            } else {
+                delete progressoGeral[key];
+                checkbox.closest('tr').classList.remove('bg-emerald-50/20');
+            }
+            localStorage.setItem('progresso_meruoca', JSON.stringify(progressoGeral));
+            updateDashboard();
+            atualizarContadorSemana(semana);
+        }
+
+        function actualizarContadorSemana(semana) {
+            const semData = CRONOGRAMA_DADOS.find(s => s.semana === semana);
+            if (!semData) return;
+            let concluido = 0;
+            semData.dias.forEach((d, idx) => {
+                if (progressoGeral[`s${semana}_d${idx}`]) concluido++;
+            });
+            const el = document.getElementById(`contadorSemana-${semana}`);
+            if (el) el.innerText = `${concluido} de 7 concluídos`;
+        }
+
+        function updateDashboard() {
+            const totalMetas = 9 * 7;
+            const concluidas = Object.keys(progressoGeral).length;
+            const percentMetas = Math.round((concluidas / totalMetas) * 100) || 0;
+            document.getElementById('dashMetaPercent').innerText = `${percentMetas}%`;
+
+            document.getElementById('dashResolvidas').innerText = statsQuiz.solved;
+            const taxa = statsQuiz.solved > 0 ? Math.round((statsQuiz.correct / statsQuiz.solved) * 100) : 0;
+            document.getElementById('dashAcerto').innerText = `${taxa}%`;
+        }
+
+        function normalizarTextoParaTag(texto) {
+            return texto.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9\s]/g, "")
+                .replace(/\s+/g, "-")
+                .trim();
+        }
+
+        const STOPWORDS_TAG = new Set(['de','da','do','das','dos','e','em','no','na','nos','nas','para','com','a','o','as','os','ao','aos','um','uma','uns','umas','ou','por']);
+
+        function extrairPalavrasChave(texto) {
+            return normalizarTextoParaTag(texto)
+                .split('-')
+                .filter(palavra => palavra.length > 2 && !STOPWORDS_TAG.has(palavra));
+        }
+
+        function pontuarCorrespondencia(palavrasBusca, palavrasQuestao) {
+            if (palavrasQuestao.length === 0) return 0;
+            let pontos = 0;
+            palavrasQuestao.forEach(pq => {
+                if (palavrasBusca.includes(pq)) {
+                    pontos += 1;
+                } else if (palavrasBusca.some(pb => pb.length > 3 && pq.length > 3 && (pb.includes(pq) || pq.includes(pb)))) {
+                    pontos += 0.5;
+                }
+            });
+            return pontos / palavrasQuestao.length;
+        }
+
+        function buscarSimuladoTema(assuntoOriginal) {
+            if (!assuntoOriginal || assuntoOriginal.trim() === "") {
+                mostrarNotificacao("Por favor, digite um termo válido para busca.", false);
+                return;
+            }
+
+            if (BANCO_DE_QUESTOES.length === 0) {
+                mostrarNotificacao("Aguarde a sincronização do banco de dados.", false);
+                return;
+            }
+
+            const tagBusca = normalizarTextoParaTag(assuntoOriginal);
+            const palavrasBusca = extrairPalavrasChave(assuntoOriginal);
+
+            activeQuestions = BANCO_DE_QUESTOES.filter(q => normalizarTextoParaTag(q.conteudoTag) === tagBusca);
+
+            if (activeQuestions.length === 0) {
+                const candidatos = BANCO_DE_QUESTOES
+                    .map(q => ({ q, pontuacao: pontuarCorrespondencia(palavrasBusca, extrairPalavrasChave(q.conteudoTag)) }))
+                    .filter(c => c.pontuacao > 0);
+
+                if (candidatos.length > 0) {
+                    const melhorPontuacao = Math.max(...candidatos.map(c => c.pontuacao));
+                    const limiar = Math.max(melhorPontuacao * 0.6, 0.34);
+                    activeQuestions = candidatos.filter(c => c.pontuacao >= limiar).map(c => c.q);
+                }
+            }
+
+            if (activeQuestions.length === 0) {
+                let fallbackTag = "";
+                if (assuntoOriginal.toLowerCase().includes("português") || assuntoOriginal.toLowerCase().includes("crase") || assuntoOriginal.toLowerCase().includes("sintaxe") || assuntoOriginal.toLowerCase().includes("regência") || assuntoOriginal.toLowerCase().includes("concordância") || assuntoOriginal.toLowerCase().includes("conjunção") || assuntoOriginal.toLowerCase().includes("ortografia") || assuntoOriginal.toLowerCase().includes("acentuação")) {
+                    fallbackTag = "portugues";
+                } else if (assuntoOriginal.toLowerCase().includes("sus") || assuntoOriginal.toLowerCase().includes("lei") || assuntoOriginal.toLowerCase().includes("decreto") || assuntoOriginal.toLowerCase().includes("pnab") || assuntoOriginal.toLowerCase().includes("vigilância")) {
+                    fallbackTag = "sus";
+                } else if (assuntoOriginal.toLowerCase().includes("informática") || assuntoOriginal.toLowerCase().includes("windows") || assuntoOriginal.toLowerCase().includes("excel") || assuntoOriginal.toLowerCase().includes("word") || assuntoOriginal.toLowerCase().includes("segurança")) {
+                    fallbackTag = "informatica";
+                } else {
+                    fallbackTag = "enfermagem";
+                }
+
+                activeQuestions = BANCO_DE_QUESTOES.filter(q => {
+                    const tagQuestao = normalizarTextoParaTag(q.conteudoTag);
+                    return tagQuestao.includes(fallbackTag);
+                });
+            }
+
+            if (activeQuestions.length === 0) {
+                mostrarNotificacao(`Nenhuma questão encontrada para: "${assuntoOriginal}"`, false);
+                return;
+            }
+
+            currentQuestionIndex = 0;
+            document.getElementById('quizTemaTitulo').innerText = assuntoOriginal;
+            
+            document.getElementById('estadoSimuladoVazio').classList.add('hidden');
+            document.getElementById('estadoSimuladoComDados').classList.remove('hidden');
+            
+            document.getElementById('containerSimuladoAtivo').scrollIntoView({ behavior: 'smooth' });
+
+            renderizarQuestaoQuiz();
+        }
+
+        function embaralharArray(array) {
+            let copia = [...array];
+            for (let i = copia.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copia[i], copia[j]] = [copia[j], copia[i]];
+            }
+            return copia;
+        }
+
+        function renderizarQuestaoQuiz() {
+            const q = activeQuestions[currentQuestionIndex];
+            if (!q) return;
+
+            selectedOptionText = null;
+            document.getElementById('quizFeedbackBox').className = "hidden";
+            document.getElementById('btnSubmitQuestao').disabled = false;
+
+            document.getElementById('quizQuestaoContador').innerText = `Questão ${currentQuestionIndex + 1} de ${activeQuestions.length}`;
+            document.getElementById('quizQuestaoBanca').innerText = `${q.banca.toUpperCase()} (${q.ano})`;
+            document.getElementById('quizEnunciado').innerText = q.enunciado;
+
+            if (!q.alternativasEmbaralhadas) {
+                q.textoRespostaCorreta = resolverRespostaCorreta(q);
+                q.alternativasEmbaralhadas = embaralharArray(q.alternativas);
+            }
+
+            const container = document.getElementById('quizAlternativasContainer');
+            container.innerHTML = '';
+            optionButtonsReferencia = [];
+
+            q.alternativasEmbaralhadas.forEach((altText, idx) => {
+                const letra = String.fromCharCode(65 + idx);
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition text-xs font-semibold text-slate-700 flex items-start gap-2 focus:outline-none";
+                btn.onclick = () => selecionarAlternativaSimulado(btn, altText);
+                btn.innerHTML = `
+                    <span class="w-5 h-5 shrink-0 rounded-full border border-slate-300 bg-white text-[10px] font-bold flex items-center justify-center text-slate-400 mt-0.5" id="badge-${idx}">${letra}</span>
+                    <span class="leading-relaxed flex-grow">${altText}</span>
+                `;
+                container.appendChild(btn);
+                optionButtonsReferencia.push({ btn, text: altText, idx });
+            });
+
+            if (q.respondidoStatus) {
+                restaurarVisualQuestaoRespondida(q);
+            } else {
+                atualizarNavegadoresQuiz();
+            }
+        }
+
+        function resolverRespostaCorreta(q) {
+            const correta = q.correta;
+            if (typeof correta === 'string' && q.alternativas.includes(correta)) {
+                return correta;
+            }
+            if (typeof correta === 'string' && /^[a-zA-Z]$/.test(correta.trim())) {
+                const idx = correta.trim().toUpperCase().charCodeAt(0) - 65;
+                if (q.alternativas[idx] !== undefined) return q.alternativas[idx];
+            }
+            const idxNum = parseInt(correta, 10);
+            if (!isNaN(idxNum) && q.alternativas[idxNum] !== undefined) {
+                return q.alternativas[idxNum];
+            }
+            return q.alternativas[0];
+        }
+
+        function selecionarAlternativaSimulado(botao, textoAlternativa) {
+            const q = activeQuestions[currentQuestionIndex];
+            if (q.respondidoStatus) return;
+
+            selectedOptionText = textoAlternativa;
+
+            optionButtonsReferencia.forEach(item => {
+                item.btn.className = "w-full text-left p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition text-xs font-semibold text-slate-700 flex items-start gap-2 focus:outline-none";
+                const b = document.getElementById(`badge-${item.idx}`);
+                b.className = "w-5 h-5 shrink-0 rounded-full border border-slate-300 bg-white text-[10px] font-bold flex items-center justify-center text-slate-400 mt-0.5";
+            });
+
+            botao.className = "w-full text-left p-3 border-2 border-blue-600 bg-blue-50/20 rounded-xl transition text-xs font-semibold text-blue-800 flex items-start gap-2 focus:outline-none";
+            const currentBadge = botao.querySelector('span');
+            currentBadge.className = "w-5 h-5 shrink-0 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5";
+        }
+
+        function verificarQuizResposta() {
+            const q = activeQuestions[currentQuestionIndex];
+            if (!q || !selectedOptionText || q.respondidoStatus) return;
+
+            q.respondidoStatus = true;
+            q.alternativaSelecionadaPeloUsuario = selectedOptionText;
+
+            statsQuiz.solved += 1;
+            const acerto = (selectedOptionText === q.textoRespostaCorreta);
+            if (acerto) {
+                statsQuiz.correct += 1;
+            }
+            localStorage.setItem('stats_meruoca', JSON.stringify(statsQuiz));
+            updateDashboard();
+
+            restaurarVisualQuestaoRespondida(q);
+        }
+
+        function restaurarVisualQuestaoRespondida(q) {
+            document.getElementById('btnSubmitQuestao').disabled = true;
+
+            const feedbackBox = document.getElementById('quizFeedbackBox');
+            const acerto = (q.alternativaSelecionadaPeloUsuario === q.textoRespostaCorreta);
+
+            optionButtonsReferencia.forEach(item => {
+                item.btn.disabled = true;
+                const b = document.getElementById(`badge-${item.idx}`);
+
+                if (item.text === q.textoRespostaCorreta) {
+                    item.btn.className = "w-full text-left p-3 border border-emerald-500 bg-emerald-50/30 rounded-xl text-xs font-semibold text-emerald-800 flex items-start gap-2 focus:outline-none";
+                    b.className = "w-5 h-5 shrink-0 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center mt-0.5";
+                } else if (item.text === q.alternativaSelecionadaPeloUsuario) {
+                    item.btn.className = "w-full text-left p-3 border border-rose-500 bg-rose-50/30 rounded-xl text-xs font-semibold text-rose-800 flex items-start gap-2 focus:outline-none";
+                    b.className = "w-5 h-5 shrink-0 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center mt-0.5";
+                } else {
+                    item.btn.className = "w-full text-left p-3 border border-slate-100 rounded-xl opacity-50 text-xs font-semibold text-slate-400 flex items-start gap-2 focus:outline-none";
+                    b.className = "w-5 h-5 shrink-0 rounded-full border border-slate-200 bg-slate-50 text-[10px] font-bold flex items-center justify-center text-slate-300 mt-0.5";
+                }
+            });
+
+            feedbackBox.className = `p-4 rounded-xl border text-xs sm:text-sm space-y-2 block ${acerto ? 'bg-emerald-50/40 border-emerald-100 text-emerald-900' : 'bg-rose-50/40 border-rose-100 text-rose-900'}`;
+            feedbackBox.innerHTML = `
+                <div class="flex items-center gap-1.5 font-bold">
+                    <i data-lucide="${acerto ? 'check-circle' : 'alert-circle'}" class="w-4 h-4 text-${acerto ? 'emerald' : 'rose'}-600"></i>
+                    ${acerto ? 'Parabéns, você acertou!' : 'Você errou esta questão.'}
+                </div>
+                <div class="text-[11px] text-slate-600 mt-1">
+                    <strong>Gabarito Oficial:</strong> ${q.textoRespostaCorreta}
+                </div>
+                <div class="text-[11px] text-slate-700 bg-white/70 p-3 rounded-lg border border-slate-100 leading-relaxed mt-2">
+                    <strong>Explicação:</strong> ${q.explicacao}
+                </div>
+            `;
+
+            atualizarNavegadoresQuiz();
+            lucide.createIcons();
+        }
+
+        function atualizarNavegadoresQuiz() {
+            document.getElementById('btnPrevQuestao').disabled = (currentQuestionIndex === 0);
+            document.getElementById('btnNextQuestao').disabled = (currentQuestionIndex === activeQuestions.length - 1);
+        }
+
+        function nextQuestao() {
+            if (currentQuestionIndex < activeQuestions.length - 1) {
+                currentQuestionIndex++;
+                renderizarQuestaoQuiz();
+            }
+        }
+
+        function prevQuestao() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderizarQuestaoQuiz();
+            }
+        }
+    </script>
+</body>
+</html>
